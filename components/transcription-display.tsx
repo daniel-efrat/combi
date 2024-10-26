@@ -1,145 +1,150 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { WhisperResponse, WhisperSegment } from "@/lib/config/whisper"
+import { formatTimestamp } from "@/lib/utils/format-timestamp"
+import { Button } from "@/components/ui/button"
+import { Check, Copy, Download } from "lucide-react"
+import { saveAs } from "file-saver"
 import {
-  Download,
-  Languages,
-  MessageSquareText,
-  FileText,
-  Loader2,
-} from "lucide-react";
-import { TranscriptionResponse } from "@/lib/types";
-import { createSRTContent } from "@/lib/utils/file-processing";
-import { useToast } from "@/components/ui/use-toast";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { getTranslation } from "@/lib/config/translations"
 
 interface TranscriptionDisplayProps {
-  transcription?: TranscriptionResponse;
+  transcription: WhisperResponse
+  language: string
 }
 
-export function TranscriptionDisplay({ transcription }: TranscriptionDisplayProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { toast } = useToast();
+const RTL_LANGUAGES = ["he", "ar"]
 
-  const handleCopyText = async () => {
-    if (!transcription?.text) return;
+function formatSRT(segments: WhisperSegment[]): string {
+  return segments
+    .map((segment, index) => {
+      const startTime = new Date(segment.start * 1000)
+        .toISOString()
+        .slice(11, 23)
+        .replace(".", ",")
+      const endTime = new Date(segment.end * 1000)
+        .toISOString()
+        .slice(11, 23)
+        .replace(".", ",")
+      return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text}\n`
+    })
+    .join("\n")
+}
 
-    try {
-      await navigator.clipboard.writeText(transcription.text);
-      toast({
-        title: "Copied",
-        description: "Text copied to clipboard",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy text",
-        variant: "destructive",
-      });
+export function TranscriptionDisplay({
+  transcription,
+  language,
+}: TranscriptionDisplayProps) {
+  const [copied, setCopied] = useState(false)
+  const t = (key: string) => getTranslation(language || "en", key as any)
+
+  if (!transcription) return null
+
+  const isRTL = RTL_LANGUAGES.includes(language)
+  const textDirection = isRTL ? "rtl" : "ltr"
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(transcription.text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleDownload = (format: "txt" | "srt") => {
+    let content: string
+    let filename: string
+
+    if (format === "txt") {
+      content = transcription.segments
+        .map(
+          (segment) =>
+            `[${formatTimestamp(segment.start)} - ${formatTimestamp(
+              segment.end
+            )}] ${segment.text}`
+        )
+        .join("\n")
+      filename = "transcription.txt"
+    } else {
+      content = formatSRT(transcription.segments)
+      filename = "transcription.srt"
     }
-  };
 
-  const handleDownloadSRT = () => {
-    if (!transcription) return;
-
-    const srtContent = createSRTContent(transcription);
-    const blob = new Blob([srtContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "transcription.srt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
+    saveAs(blob, filename)
+  }
 
   return (
-    <Card className="p-6">
-      <Tabs defaultValue="transcription" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="transcription">Transcription</TabsTrigger>
-          <TabsTrigger value="translation">Translation</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="transcription">
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Transcribed Text</h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyText}
-                  disabled={!transcription?.text || isProcessing}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadSRT}
-                  disabled={!transcription?.segments || isProcessing}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download SRT
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-lg border bg-muted/50 p-4">
-              {isProcessing ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : transcription?.text ? (
-                <p className="whitespace-pre-wrap">{transcription.text}</p>
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">{t("fullTranscription")}</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              title={t("copyToClipboard")}
+            >
+              {copied ? (
+                <Check className="h-4 w-4" />
               ) : (
-                <p className="text-muted-foreground">
-                  Upload a file or record audio to see the transcription here.
-                </p>
+                <Copy className="h-4 w-4" />
               )}
-            </div>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title={t("downloadAsTxt")}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleDownload("txt")}>
+                  {t("downloadAsTxt")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload("srt")}>
+                  {t("downloadAsSrt")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </TabsContent>
+        </div>
+        <p className="text-card-foreground" dir={textDirection} lang={language}>
+          {transcription.text}
+        </p>
+      </div>
 
-        <TabsContent value="translation">
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Translated Text</h3>
-              <Button variant="outline" size="sm">
-                <Languages className="mr-2 h-4 w-4" />
-                Select Language
-              </Button>
-            </div>
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="text-muted-foreground">
-                Transcribe content first to enable translation.
-              </p>
-            </div>
+      {transcription.segments && transcription.segments.length > 0 && (
+        <div className="rounded-lg border bg-card p-4">
+          <h2 className="text-lg font-semibold mb-4">{t("segments")}</h2>
+          <div className="space-y-2">
+            {transcription.segments.map((segment: WhisperSegment) => (
+              <div
+                key={segment.id}
+                className={`flex gap-4 text-sm border-b last:border-0 pb-2 ${
+                  isRTL ? "flex-row-reverse" : "flex-row"
+                }`}
+              >
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {formatTimestamp(segment.start)} -{" "}
+                  {formatTimestamp(segment.end)}
+                </span>
+                <p dir={textDirection} lang={language}>
+                  {segment.text}
+                </p>
+              </div>
+            ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="summary">
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Content Summary</h3>
-              <Button variant="outline" size="sm">
-                <MessageSquareText className="mr-2 h-4 w-4" />
-                Adjust Length
-              </Button>
-            </div>
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="text-muted-foreground">
-                Transcribe content first to generate a summary.
-              </p>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </Card>
-  );
+        </div>
+      )}
+    </div>
+  )
 }
