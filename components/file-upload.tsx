@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
@@ -17,12 +18,12 @@ interface FileUploadProps {
   language: string
 }
 
-export function FileUpload({
+export const FileUpload: React.FC<FileUploadProps> = ({
   onFileSelect,
   isLoading,
   isLanguageSelected,
   language,
-}: FileUploadProps) {
+}) => {
   const [dragActive, setDragActive] = useState(false)
   const { toast } = useToast()
   const t = (key: string) => getTranslation(language || "en", key as any)
@@ -114,20 +115,26 @@ export function FileUpload({
                 disabled={isLoading || !isLanguageSelected}
               />
 
-              <div className="flex flex-col items-center gap-4">
-                <UploadCloud className="h-10 w-10 text-muted-foreground" />
-                <div className="flex flex-col gap-1">
+              <div className="">
+                <UploadCloud className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                <div className="mx-auto text-center">
                   {!isLanguageSelected ? (
                     <p className="text-sm font-medium text-muted-foreground">
                       {t("pleaseSelectLanguage")}
                     </p>
                   ) : (
-                    <p className="text-sm font-medium">{t("dragAndDrop")}</p>
+                    <p className="text-sm font-medium mb-2">
+                      {t("dragAndDrop")}
+                    </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p
+                    className="text-xs text-muted-foreground mb-2 text-center mx-auto"
+                    dir={["he", "ar"].includes(language) ? "rtl" : "ltr"}
+                    style={{ textAlign: "center" }}
+                  >
                     {t("supportedFormats")}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-4">
                     {t("processingLargeFiles")}
                   </p>
                 </div>
@@ -146,9 +153,9 @@ export function FileUpload({
       <TabsContent value="url">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 p-8">
-              <Link className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            <div className="p-8">
+              <Link className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground mx-auto text-center">
                 {t("urlUploadSoon")}
               </p>
             </div>
@@ -159,9 +166,9 @@ export function FileUpload({
       <TabsContent value="record">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 p-8">
-              <Mic className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            <div className="p-8">
+              <Mic className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground mx-auto text-center">
                 {t("recordingSoon")}
               </p>
             </div>

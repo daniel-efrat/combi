@@ -17,6 +17,7 @@ import { getTranslation } from "@/lib/config/translations"
 interface TranscriptionDisplayProps {
   transcription: WhisperResponse
   language: string
+  fileName?: string
 }
 
 const RTL_LANGUAGES = ["he", "ar"]
@@ -40,6 +41,7 @@ function formatSRT(segments: WhisperSegment[]): string {
 export function TranscriptionDisplay({
   transcription,
   language,
+  fileName,
 }: TranscriptionDisplayProps) {
   const [copied, setCopied] = useState(false)
   const t = (key: string) => getTranslation(language || "en", key as any)
@@ -50,7 +52,15 @@ export function TranscriptionDisplay({
   const textDirection = isRTL ? "rtl" : "ltr"
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(transcription.text)
+    const text = transcription.segments
+      .map(
+        (segment) =>
+          `[${formatTimestamp(segment.start)} - ${formatTimestamp(
+            segment.end
+          )}] ${segment.text}`
+      )
+      .join("\n")
+    await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -79,67 +89,118 @@ export function TranscriptionDisplay({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">{t("fullTranscription")}</h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleCopy}
-              title={t("copyToClipboard")}
-            >
-              {copied ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  title={t("downloadAsTxt")}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleDownload("txt")}>
-                  {t("downloadAsTxt")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDownload("srt")}>
-                  {t("downloadAsSrt")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        <p className="text-card-foreground" dir={textDirection} lang={language}>
-          {transcription.text}
-        </p>
-      </div>
-
+    <div className="space-y-4" dir={textDirection}>
       {transcription.segments && transcription.segments.length > 0 && (
         <div className="rounded-lg border bg-card p-4">
-          <h2 className="text-lg font-semibold mb-4">{t("segments")}</h2>
+          {/* Header Section */}
+          <div className="flex items-center mb-4">
+            {isRTL ? (
+              <>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopy}
+                    title={t("copyToClipboard")}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleDownload("txt")}>
+                        {t("downloadAsTxt")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload("srt")}>
+                        {t("downloadAsSrt")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold">{t("segments")}</h2>
+                  {fileName && (
+                    <p className="text-sm text-muted-foreground">{fileName}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold">{t("segments")}</h2>
+                  {fileName && (
+                    <p className="text-sm text-muted-foreground">{fileName}</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopy}
+                    title={t("copyToClipboard")}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleDownload("txt")}>
+                        {t("downloadAsTxt")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload("srt")}>
+                        {t("downloadAsSrt")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Segments Section */}
           <div className="space-y-2">
             {transcription.segments.map((segment: WhisperSegment) => (
               <div
                 key={segment.id}
-                className={`flex gap-4 text-sm border-b last:border-0 pb-2 ${
-                  isRTL ? "flex-row-reverse" : "flex-row"
-                }`}
+                className="flex gap-4 text-sm border-b last:border-0 pb-2"
               >
-                <span className="text-muted-foreground whitespace-nowrap">
-                  {formatTimestamp(segment.start)} -{" "}
-                  {formatTimestamp(segment.end)}
-                </span>
-                <p dir={textDirection} lang={language}>
-                  {segment.text}
-                </p>
+                {isRTL ? (
+                  <>
+                    <p className="flex-1" lang={language}>
+                      {segment.text}
+                    </p>
+                    <span className="text-muted-foreground whitespace-nowrap keep-ltr">
+                      {formatTimestamp(segment.start)} -{" "}
+                      {formatTimestamp(segment.end)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground whitespace-nowrap keep-ltr">
+                      {formatTimestamp(segment.start)} -{" "}
+                      {formatTimestamp(segment.end)}
+                    </span>
+                    <p className="flex-1" lang={language}>
+                      {segment.text}
+                    </p>
+                  </>
+                )}
               </div>
             ))}
           </div>

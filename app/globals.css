@@ -6,28 +6,20 @@
   :root {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
-
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
@@ -106,4 +98,86 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .flex:not(.no-rtl) {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .justify-end {
+  justify-content: flex-start;
+}
+
+[dir="rtl"] .justify-start {
+  justify-content: flex-end;
+}
+
+/* Don't mirror icons in RTL */
+[dir="rtl"] svg {
+  transform: none !important;
+}
+
+/* Keep timestamps LTR in RTL mode */
+[dir="rtl"] .text-muted-foreground.whitespace-nowrap {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Keep certain elements LTR even in RTL mode */
+.keep-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Layout fixes */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Container width */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 900px;
+  }
+}
+
+/* Add this to your existing styles */
+.drag-and-drop-zone {
+  display: flex;
+  flex-direction: column;
+  /* Ensure items stack vertically */
+  align-items: center;
+  /* Center items horizontally */
+  justify-content: center;
+  /* Center items vertically */
+  border: 2px dashed var(--border);
+  padding: 1rem;
+  transition: background-color 0.3s;
 }
